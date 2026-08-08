@@ -165,7 +165,7 @@ const Login = () => {
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             {!isLogin && !errors.password && (
               <p className="text-gray-400 text-xs mt-1">
-                Min 8 characters, upper + lower case, a number, a special character
+                Min 8 characters, upper case, lower case, a number, a special character
               </p>
             )}
           </div>

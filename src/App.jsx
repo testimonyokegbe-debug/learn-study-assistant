@@ -4,6 +4,7 @@ import Home from "./components/Home";
 import Login from "./components/Login";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
+import Contact from "./components/Contact";
 
 
 import Testimonials from "./components/Testimonials";
@@ -24,6 +25,7 @@ const App = () => {
               <Header />
               <Dashboard />
               <Testimonials />
+              <Contact />
             </>
           }
         />
