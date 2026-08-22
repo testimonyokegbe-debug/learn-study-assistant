@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+import { login, signup, loginWithGoogle } from "../services/authservices";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -11,6 +13,11 @@ const Login = () => {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -18,6 +25,7 @@ const Login = () => {
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: "" });
     }
+    if (authError) setAuthError("");
   };
 
   const validateEmail = (email) => {
@@ -88,17 +96,50 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setAuthError("");
+    setInfoMessage("");
     if (!validateForm()) return;
 
-    console.log(isLogin ? "Login data:" : "Signup data:", formData);
-    navigate("/dashboard");
+    setLoading(true);
+    try {
+      if (isLogin) {
+        await login(formData.email, formData.password);
+        navigate("/dashboard");
+      } else {
+        await signup(formData.email, formData.password);
+        // Firebase has sent a verification email at this point
+        setInfoMessage("Account created! Check your email to verify your account, then log in.");
+        setIsLogin(true);
+        setFormData({ name: "", email: formData.email, password: "", confirmPassword: "" });
+      }
+    } catch (error) {
+      setAuthError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setAuthError("");
+    setInfoMessage("");
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate("/dashboard");
+    } catch (error) {
+      setAuthError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setErrors({});
+    setAuthError("");
+    setInfoMessage("");
   };
 
   return (
@@ -110,6 +151,17 @@ const Login = () => {
         <p className="text-gray-500 font-bold mb-6">
           {isLogin ? "Log in to your account" : "Sign up to get started"}
         </p>
+
+        {infoMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-2 mb-4">
+            {infoMessage}
+          </div>
+        )}
+        {authError && (
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-2 mb-4">
+            {authError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           {!isLogin && (
@@ -150,18 +202,28 @@ const Login = () => {
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
-                errors.password
-                  ? "border-red-500 focus:ring-red-400"
-                  : "border-gray-300 focus:ring-blue-500"
-              }`}
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className={`w-full border rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 ${
+                  errors.password
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             {!isLogin && !errors.password && (
               <p className="text-gray-400 text-xs mt-1">
@@ -173,18 +235,28 @@ const Login = () => {
           {!isLogin && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Confirm Password</label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
-                  errors.confirmPassword
-                    ? "border-red-500 focus:ring-red-400"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full border rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 ${
+                    errors.confirmPassword
+                      ? "border-red-500 focus:ring-red-400"
+                      : "border-gray-300 focus:ring-blue-500"
+                  }`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {errors.confirmPassword && (
                 <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
               )}
@@ -193,11 +265,33 @@ const Login = () => {
 
           <button
             type="submit"
-            className="bg-blue-500 text-white rounded-full py-2.5 mt-2 hover:bg-blue-600 transition"
+            disabled={loading}
+            className="bg-blue-500 text-white rounded-full py-2.5 mt-2 hover:bg-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isLogin ? "Log In" : "Sign Up"}
+            {loading ? "Please wait..." : isLogin ? "Log In" : "Sign Up"}
           </button>
         </form>
+
+        <div className="flex items-center gap-3 my-5">
+          <div className="h-px bg-gray-200 flex-1" />
+          <span className="text-gray-400 text-xs">OR</span>
+          <div className="h-px bg-gray-200 flex-1" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-full py-2.5 hover:bg-gray-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z" />
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z" />
+            <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z" />
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z" />
+          </svg>
+          <span className="text-gray-700 text-sm font-medium">Continue with Google</span>
+        </button>
 
         <p className="text-center text-gray-500 text-sm mt-6">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}

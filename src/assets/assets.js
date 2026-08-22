@@ -5,6 +5,7 @@ import human3 from "./human3.jpg";
 import human4 from "./human4.jpg";
 import star from "./star.svg";
 
+
 export const assets = {
   logo,
   Dashboard,
@@ -12,6 +13,8 @@ export const assets = {
   human3,
   human4,
   star,
+ 
+
 };
 
 export const TestimonialsData = [

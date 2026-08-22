@@ -1,4 +1,5 @@
 import React from "react";
+import { toast } from "react-toastify";
 
 const Contact = () => {
   const [result, setResult] = React.useState("");
@@ -8,20 +9,30 @@ const Contact = () => {
     setResult("Sending....");
     const formData = new FormData(event.target);
 
-    formData.append("access_key", "4274baef-98f2-4b28-92c1-34ae8d572c70");
+formData.append("access_key", import.meta.env.VITE_WEB3FORMS_KEY);
 
     const response = await fetch("https://api.web3forms.com/submit", {
       method: "POST",
       body: formData
     });
 
+    const data = await response.json();
 
+    if (data.success) {
+      setResult("");
+     toast.success("Form Submitted Successfully")
+      event.target.reset();
+    } else {
+      console.log("Error", data);
+      toast.error(data.message);
+      setResult("");
+    }
   };
 
   return (
     <div className="text-center p-6 py-20 lg:px-32 w-full overflow-hidden" id="contact">
       <h1 className="text-2xl sm:text-4xl font-bold mb-2 text-center">
-        Contact Us
+        Contact us
       </h1>
       <p className="text-center text-gray-500 mb-8 max-w-80 mx-auto">
        For more information, please reach out to us using the form below. 

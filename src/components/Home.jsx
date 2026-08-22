@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { assets } from "../assets/assets";
+import { motion } from "motion/react"
 
 const Home = () => {
   return (
@@ -8,9 +9,18 @@ const Home = () => {
       <div className="max-w-6xl mx-auto rounded-3xl overflow-hidden flex flex-col md:flex-row bg-[#F5F2ED] shadow-lg">
         
         {/* Left side - Image */}
-        <div className="w-full md:w-1/2">
-          <img src={assets.logo} alt="hero" className="w-full h-full object-cover" />
-        </div>
+  <motion.div
+  className="w-full md:w-1/2 overflow-hidden rounded-xl"
+>
+  <motion.img
+    src={assets.logo}
+    alt="hero"
+    className="w-full h-full object-cover"
+    whileHover={{ scale: 1.15 }}
+    whileTap={{ scale: 0.95 }}
+    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+  />
+</motion.div>
         {/* Right side - Text */}
         <div className="w-full md:w-1/2 flex flex-col justify-center px-6 py-10 md:px-12">
           <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-4 ">
