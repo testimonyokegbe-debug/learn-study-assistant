@@ -20,34 +20,42 @@ import Layout from "./components/Layout";
 const App = () => {
   return (
     <BrowserRouter>
-      <ToastContainer position="top-right" autoClose={3000} />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/logout" element={<Logout />} />
+      {/* Container wraps the entire app height */}
+      <div className="min-h-screen flex flex-col justify-between">
+        <ToastContainer position="top-right" autoClose={3000} />
 
-        {/* Pages that need the Navbar go inside this wrapper */}
-        <Route element={<Layout />}>
-          <Route path="/learn" element={<Learn />} />
-          <Route path="/notes" element={<Notes />} />
-          <Route path="/calculator" element={<Calculator />} />
-          <Route path="/ai-assist" element={<Ai />} />
-        </Route>
+        {/* main wrapper takes all remaining vertical space */}
+        <main className="flex-1 flex flex-col">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/logout" element={<Logout />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <>
-              <Header />
-              <Dashboard />
-              <Testimonials />
-              <Contact />
-            </>
-          }
-        />
-      </Routes>
-      <Footer />
+            {/* Pages that need the Navbar go inside this wrapper */}
+            <Route element={<Layout />}>
+              <Route path="/learn" element={<Learn />} />
+              <Route path="/notes" element={<Notes />} />
+              <Route path="/calculator" element={<Calculator />} />
+              <Route path="/ai-assist" element={<Ai />} />
+            </Route>
+
+            <Route
+              path="/dashboard"
+              element={
+                <>
+                  <Header />
+                  <Dashboard />
+                  <Testimonials />
+                  <Contact />
+                </>
+              }
+            />
+          </Routes>
+        </main>
+
+        <Footer />
+      </div>
     </BrowserRouter>
   );
 };
