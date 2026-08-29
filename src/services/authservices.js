@@ -2,9 +2,11 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signOut,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -16,7 +18,7 @@ const getFriendlyError = (error) => {
     case "auth/invalid-email":
       return "Please enter a valid email address.";
     case "auth/weak-password":
-      return "Password should be at least 6 characters.";
+      return "Password should be at least 8 characters.";
     case "auth/user-not-found":
     case "auth/wrong-password":
     case "auth/invalid-credential":
@@ -51,13 +53,34 @@ export const login = async (email, password) => {
   }
 };
 
-// Google sign-in
+// Google sign-in (redirect-based — avoids popup/COOP issues)
 const googleProvider = new GoogleAuthProvider();
 
 export const loginWithGoogle = async () => {
   try {
-    const userCredential = await signInWithPopup(auth, googleProvider);
-    return userCredential.user;
+    await signInWithRedirect(auth, googleProvider);
+    // Browser navigates away here — result is picked up by
+    // handleGoogleRedirectResult() when the user comes back.
+  } catch (error) {
+    throw new Error(getFriendlyError(error));
+  }
+};
+
+// Call this once on app load (e.g. in App.jsx's useEffect) to catch the
+// user coming back from Google after signInWithRedirect.
+export const handleGoogleRedirectResult = async () => {
+  try {
+    const result = await getRedirectResult(auth);
+    return result ? result.user : null;
+  } catch (error) {
+    throw new Error(getFriendlyError(error));
+  }
+};
+
+// Forgot password
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
   } catch (error) {
     throw new Error(getFriendlyError(error));
   }

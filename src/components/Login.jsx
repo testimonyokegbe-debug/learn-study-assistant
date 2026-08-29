@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import { login, signup, loginWithGoogle } from "../services/authservices";
+import {
+  login,
+  signup,
+  loginWithGoogle,
+  handleGoogleRedirectResult,
+} from "../services/authservices";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -19,9 +24,17 @@ const Login = () => {
   const [authError, setAuthError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
 
+  // Catch the user coming back from Google after signInWithRedirect
+  useEffect(() => {
+    handleGoogleRedirectResult()
+      .then((user) => {
+        if (user) navigate("/dashboard");
+      })
+      .catch((error) => setAuthError(error.message));
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // clear error for this field as user types
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: "" });
     }
@@ -34,7 +47,6 @@ const Login = () => {
   };
 
   const validatePassword = (password) => {
-    // min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
     const hasMinLength = password.length >= 8;
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
@@ -54,23 +66,19 @@ const Login = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Name (signup only)
     if (!isLogin && !formData.name.trim()) {
       newErrors.name = "Full name is required";
     }
 
-    // Email
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Enter a valid email address";
     }
 
-    // Password
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (!isLogin) {
-      // only enforce strength rules on signup
       const check = validatePassword(formData.password);
       if (!check.isValid) {
         const missing = [];
@@ -83,7 +91,6 @@ const Login = () => {
       }
     }
 
-    // Confirm password (signup only)
     if (!isLogin) {
       if (!formData.confirmPassword) {
         newErrors.confirmPassword = "Please confirm your password";
@@ -109,7 +116,6 @@ const Login = () => {
         navigate("/dashboard");
       } else {
         await signup(formData.email, formData.password);
-        // Firebase has sent a verification email at this point
         setInfoMessage("Account created! Check your email to verify your account, then log in.");
         setIsLogin(true);
         setFormData({ name: "", email: formData.email, password: "", confirmPassword: "" });
@@ -127,10 +133,10 @@ const Login = () => {
     setLoading(true);
     try {
       await loginWithGoogle();
-      navigate("/dashboard");
+      // Browser navigates away to Google here. Nothing runs after this
+      // until the user comes back — handled by the useEffect above.
     } catch (error) {
       setAuthError(error.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -229,6 +235,17 @@ const Login = () => {
               <p className="text-gray-400 text-xs mt-1">
                 Min 8 characters, upper case, lower case, a number, a special character
               </p>
+            )}
+            {isLogin && (
+              <div className="text-right mt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-blue-500 text-xs hover:underline"
+                >
+                  Forgot password ?
+                </button>
+              </div>
             )}
           </div>
 

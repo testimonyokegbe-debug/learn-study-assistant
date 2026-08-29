@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
 import Login from "./components/Login";
+import ForgotPassword from "./components/Forgetpassword";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
 import Logout from "./components/Logout";
@@ -23,6 +24,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/logout" element={<Logout />} />
 
         {/* Pages that need the Navbar go inside this wrapper */}

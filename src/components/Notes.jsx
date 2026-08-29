@@ -1,34 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { db } from "../firebase"; // adjust path to your firebase.js
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
 
 export default function NotesPage() {
   const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  const handleSave = () => {
+  // Real-time listener on the shared notes collection
+  useEffect(() => {
+    const notesRef = collection(db, "notes");
+    const q = query(notesRef, orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetched = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
+        setNotes(fetched);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Notes listener error:", error);
+        console.error("Could not load notes.");
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSave = async () => {
     if (!title.trim() && !content.trim()) return;
 
-    if (editingId) {
-      // Update existing note
-      setNotes(
-        notes.map((note) =>
-          note.id === editingId ? { ...note, title, content } : note
-        )
-      );
-      setEditingId(null);
-    } else {
-      // Create new note
-      setNotes([
-        { id: Date.now(), title, content },
-        ...notes,
-      ]);
-    }
+    try {
+      if (editingId) {
+        const noteRef = doc(db, "notes", editingId);
+        await updateDoc(noteRef, {
+          title,
+          content,
+          updatedAt: serverTimestamp(),
+        });
+        
+        setEditingId(null);
+      } else {
+        await addDoc(collection(db, "notes"), {
+          title,
+          content,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        
+      }
 
-    setTitle("");
-    setContent("");
-    setShowForm(false);
+      setTitle("");
+      setContent("");
+      setShowForm(false);
+    } catch (error) {
+      console.error("Error saving note:", error);
+      console.error("Failed to save note.");
+    }
   };
 
   const handleEdit = (note) => {
@@ -38,14 +84,19 @@ export default function NotesPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    setNotes(notes.filter((note) => note.id !== id));
-    // If you were editing the note you just deleted, close the form too
-    if (editingId === id) {
-      setEditingId(null);
-      setTitle("");
-      setContent("");
-      setShowForm(false);
+  const handleDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, "notes", id));
+      
+      if (editingId === id) {
+        setEditingId(null);
+        setTitle("");
+        setContent("");
+        setShowForm(false);
+      }
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      console.error("Failed to delete note.");
     }
   };
 
@@ -60,9 +111,7 @@ export default function NotesPage() {
     <div>
       {/* Intro write-up */}
       <div className="px-6 md:px-16 lg:px-24 pt-8 pb-4">
-        <h1 className="text-black font-bold text-2xl mb-2">
-          Hello, Notes.
-        </h1>
+        <h1 className="text-black font-bold text-2xl mb-2">Hello, Notes.</h1>
         <p className="text-gray-500 max-w-2xl">
           A simple place to create, organize, and manage your study notes.
         </p>
@@ -72,18 +121,18 @@ export default function NotesPage() {
       <div className="max-w-2xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold">Notes</h1>
-         <button
-  onClick={() => {
-    if (showForm) {
-      handleCancel();
-    } else {
-      setShowForm(true);
-    }
-  }}
-  className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
->
-  {showForm ? "Cancel" : "New Note"}
-</button>
+          <button
+            onClick={() => {
+              if (showForm) {
+                handleCancel();
+              } else {
+                setShowForm(true);
+              }
+            }}
+            className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
+          >
+            {showForm ? "Cancel" : "New Note"}
+          </button>
         </div>
 
         {showForm && (
@@ -114,34 +163,44 @@ export default function NotesPage() {
         )}
 
         <div className="space-y-3">
-          {notes.length === 0 && !showForm && (
-            <p className="text-sm text-gray-400">No notes yet. Click "New Note" to add one.</p>
+          {loading && (
+            <p className="text-sm text-gray-400">Loading notes...</p>
           )}
-          {notes.map((note) => (
-            <div
-              key={note.id}
-              className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <h3 className="font-medium mb-1">{note.title || "Untitled"}</h3>
-                <div className="flex gap-3 ml-3 shrink-0">
-                  <button
-                    onClick={() => handleEdit(note)}
-                    className="text-xs text-[#B08968] hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(note.id)}
-                    className="text-xs text-red-500 hover:underline"
-                  >
-                    Delete
-                  </button>
+          {!loading && notes.length === 0 && !showForm && (
+            <p className="text-sm text-gray-400">
+              No notes yet. Click "New Note" to add one.
+            </p>
+          )}
+          {!loading &&
+            notes.map((note) => (
+              <div
+                key={note.id}
+                className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm"
+              >
+                <div className="flex items-start justify-between">
+                  <h3 className="font-medium mb-1">
+                    {note.title || "Untitled"}
+                  </h3>
+                  <div className="flex gap-3 ml-3 shrink-0">
+                    <button
+                      onClick={() => handleEdit(note)}
+                      className="text-xs text-[#B08968] hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(note.id)}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {note.content}
+                </p>
               </div>
-              <p className="text-sm text-gray-600 whitespace-pre-wrap">{note.content}</p>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
     </div>

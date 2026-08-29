@@ -6,7 +6,7 @@ import "katex/dist/katex.min.css";
 
 export default function Ai() {
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "Hi! I'm your AI tutor. Ask me anything about your coursework." },
+    { role: "assistant", content: "Hi! I'm your Learn Ai tutor." },
   ]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);

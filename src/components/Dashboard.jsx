@@ -68,7 +68,7 @@ const Dashboard = () => {
         to={item.link}
         className="mt-6 inline-block text-blue-500 font-medium hover:underline w-fit"
       >
-        Go to {item.title} →
+        Go to {item.title} 
       </Link>
     </div>
   ))}

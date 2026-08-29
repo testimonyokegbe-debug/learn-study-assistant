@@ -54,7 +54,7 @@ const deletePdfFromDB = async () => {
     tx.onerror = () => reject(tx.error);
   });
 };
-// -------------------------------------------------------------
+
 
 const Learn = () => {
   const [pdf, setPdf] = useState(null);
@@ -63,8 +63,6 @@ const Learn = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [isSaved, setIsSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const containerRef = useRef(null);
 
@@ -77,7 +75,6 @@ const Learn = () => {
           const url = URL.createObjectURL(saved.blob);
           setPdf(url);
           setPdfName(saved.name);
-          setIsSaved(true);
         }
       } catch (err) {
         console.error("Failed to load saved PDF:", err);
@@ -97,7 +94,7 @@ const Learn = () => {
     return () => observer.disconnect();
   }, [pdf]);
 
-  const handlePdfUpload = (e) => {
+  const handlePdfUpload = async (e) => {
     const file = e.target.files[0];
 
     if (file && file.type === "application/pdf") {
@@ -106,23 +103,13 @@ const Learn = () => {
       setPdfName(file.name);
       setPageNumber(1);
       setScale(1);
-      setIsSaved(false); // newly uploaded, not yet saved
-      containerRef.current._pendingFile = file; // stash raw file for saving
-    }
-  };
 
-  const handleSave = async () => {
-    const file = containerRef.current?._pendingFile;
-    if (!file) return;
-
-    setSaving(true);
-    try {
-      await savePdfToDB(file);
-      setIsSaved(true);
-    } catch (err) {
-      console.error("Failed to save PDF:", err);
-    } finally {
-      setSaving(false);
+      // Auto-save to IndexedDB (local, no Firebase involved)
+      try {
+        await savePdfToDB(file);
+      } catch (err) {
+        console.error("Failed to save PDF:", err);
+      }
     }
   };
 
@@ -131,7 +118,6 @@ const Learn = () => {
     setPdf(null);
     setPdfName("");
     setNumPages(null);
-    setIsSaved(false);
     try {
       await deletePdfFromDB();
     } catch (err) {
@@ -206,21 +192,12 @@ const Learn = () => {
                   <p className="text-xs text-gray-400 mt-0.5">{pdfName}</p>
                 )}
               </div>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaved || saving}
-                  className="text-sm text-blue-500 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed"
-                >
-                  {isSaved ? "Saved ✓" : saving ? "Saving…" : "Save"}
-                </button>
-                <button
-                  onClick={handleRemove}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  Remove
-                </button>
-              </div>
+              <button
+                onClick={handleRemove}
+                className="text-red-500 hover:text-red-600 text-sm"
+              >
+                Remove
+              </button>
             </div>
 
             {/* Toolbar */}
