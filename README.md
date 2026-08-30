@@ -115,6 +115,5 @@ Possible future improvements include:
 - More advanced PDF functionality
 - Additional AI-powered study features
 
-Author
-
-Testimony
+Author:
+Testimony Iruoghene Okegbe (full stack developer)
