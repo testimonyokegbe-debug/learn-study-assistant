@@ -24,21 +24,31 @@ app.post("/api/ask-ai", async (req, res) => {
 
     console.log("Question received:", question);
 
-    const response = await ai.models.generateContent({
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const stream = await ai.models.generateContentStream({
       model: "gemini-3.6-flash",
       contents: question,
+      config: {
+        thinkingConfig: { thinkingLevel: "minimal" },
+      },
     });
 
-    res.json({
-      answer: response.text,
-    });
+    for await (const chunk of stream) {
+      if (chunk.text) {
+        res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+      }
+    }
 
+    res.write("data: [DONE]\n\n");
+    res.end();
   } catch (error) {
     console.error("Gemini error:", error);
-
-    res.status(500).json({
-      error: "Failed to get response from Gemini",
-    });
+    res.write(`data: ${JSON.stringify({ error: "Failed to get response" })}\n\n`);
+    res.end();
   }
 });
 

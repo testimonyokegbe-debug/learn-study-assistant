@@ -13,17 +13,29 @@ export default function Ai() {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" });
   }, [messages]);
+
+  // Replace the content of the last (assistant) message
+  const setLastMessage = (updater) => {
+    setMessages((prev) => {
+      const copy = [...prev];
+      const last = copy[copy.length - 1];
+      copy[copy.length - 1] = { ...last, content: updater(last.content) };
+      return copy;
+    });
+  };
 
   const handleSend = async () => {
     const text = input.trim();
 
     if (!text || isStreaming) return;
 
+    // Add the user's message + an empty assistant bubble (shows the typing dots)
     setMessages((prev) => [
       ...prev,
       { role: "user", content: text },
+      { role: "assistant", content: "" },
     ]);
 
     setInput("");
@@ -40,29 +52,41 @@ export default function Ai() {
         }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to get AI response");
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to get AI response");
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.answer,
-        },
-      ]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finished = false;
+
+      while (!finished) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const events = buffer.split("\n\n");
+        buffer = events.pop(); // keep any incomplete piece for the next read
+
+        for (const event of events) {
+          if (!event.startsWith("data: ")) continue;
+          const data = event.slice(6);
+
+          if (data === "[DONE]") {
+            finished = true;
+            break;
+          }
+
+          const parsed = JSON.parse(data);
+          if (parsed.error) throw new Error(parsed.error);
+          if (parsed.text) setLastMessage((prev) => prev + parsed.text);
+        }
+      }
     } catch (error) {
       console.error("AI request failed:", error);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, something went wrong. Please try again.",
-        },
-      ]);
+      setLastMessage(() => "Sorry, something went wrong. Please try again.");
     } finally {
       setIsStreaming(false);
     }

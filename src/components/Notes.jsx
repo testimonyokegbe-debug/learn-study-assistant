@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { db } from "../firebase"; // adjust path to your firebase.js
+import { db, auth } from "../firebase"; // make sure firebase.js exports `auth`
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   addDoc,
@@ -9,10 +10,13 @@ import {
   onSnapshot,
   orderBy,
   query,
+  where,
   serverTimestamp,
 } from "firebase/firestore";
 
 export default function NotesPage() {
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -20,52 +24,75 @@ export default function NotesPage() {
   const [content, setContent] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  // Real-time listener on the shared notes collection
+  // Track who is signed in
   useEffect(() => {
-    const notesRef = collection(db, "notes");
-    const q = query(notesRef, orderBy("createdAt", "desc"));
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time listener: only THIS user's notes
+  useEffect(() => {
+    if (!authReady) return;
+
+    if (!user) {
+      setNotes([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const q = query(
+  collection(db, "notes"),
+  where("userId", "==", user.uid)
+   );
+
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const fetched = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
-        setNotes(fetched);
-        setLoading(false);
+  const fetched = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort(
+      (a, b) =>
+        (b.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER) -
+        (a.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER)
+    );
+  setNotes(fetched);
+  setLoading(false);
       },
       (error) => {
+        // If Firestore asks for an index, open the link shown in this error
         console.error("Notes listener error:", error);
-        console.error("Could not load notes.");
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [user, authReady]);
 
   const handleSave = async () => {
+    if (!user) return;
     if (!title.trim() && !content.trim()) return;
 
     try {
       if (editingId) {
-        const noteRef = doc(db, "notes", editingId);
-        await updateDoc(noteRef, {
+        await updateDoc(doc(db, "notes", editingId), {
           title,
           content,
           updatedAt: serverTimestamp(),
         });
-        
         setEditingId(null);
       } else {
         await addDoc(collection(db, "notes"), {
           title,
           content,
+          userId: user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        
       }
 
       setTitle("");
@@ -73,7 +100,6 @@ export default function NotesPage() {
       setShowForm(false);
     } catch (error) {
       console.error("Error saving note:", error);
-      console.error("Failed to save note.");
     }
   };
 
@@ -87,7 +113,7 @@ export default function NotesPage() {
   const handleDelete = async (id) => {
     try {
       await deleteDoc(doc(db, "notes", id));
-      
+
       if (editingId === id) {
         setEditingId(null);
         setTitle("");
@@ -96,7 +122,6 @@ export default function NotesPage() {
       }
     } catch (error) {
       console.error("Error deleting note:", error);
-      console.error("Failed to delete note.");
     }
   };
 
@@ -129,7 +154,8 @@ export default function NotesPage() {
                 setShowForm(true);
               }
             }}
-            className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
+            disabled={!user}
+            className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {showForm ? "Cancel" : "New Note"}
           </button>
@@ -163,15 +189,25 @@ export default function NotesPage() {
         )}
 
         <div className="space-y-3">
-          {loading && (
+          {(!authReady || loading) && (
             <p className="text-sm text-gray-400">Loading notes...</p>
           )}
-          {!loading && notes.length === 0 && !showForm && (
+
+          {authReady && !user && (
+            <p className="text-sm text-gray-400">
+              Sign in to view and create your notes.
+            </p>
+          )}
+
+          {authReady && user && !loading && notes.length === 0 && !showForm && (
             <p className="text-sm text-gray-400">
               No notes yet. Click "New Note" to add one.
             </p>
           )}
-          {!loading &&
+
+          {authReady &&
+            user &&
+            !loading &&
             notes.map((note) => (
               <div
                 key={note.id}
