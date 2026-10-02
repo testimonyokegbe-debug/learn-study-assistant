@@ -151,9 +151,9 @@ const Login = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4"
-      style={{ backgroundImage: `url(${assets.login})` }}
-    >
+  className="min-h-screen flex items-center justify-center md:justify-end md:pr-20 lg:pr-32 bg-cover bg-center bg-no-repeat px-4"
+  style={{ backgroundImage: `url(${assets.login})` }}
+>
       <div className="w-full max-w-md mt-8 mb-8 bg-white rounded-2xl shadow-lg p-8">
         <h2 className="text-2xl font-semibold text-gray-900 mb-2">
           {isLogin ? "Welcome back" : "Create An Account"}
