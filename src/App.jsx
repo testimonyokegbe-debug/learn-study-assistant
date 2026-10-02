@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./components/Home";
 import Login from "./components/Login";
 import ForgotPassword from "./components/Forgetpassword";
@@ -12,19 +12,24 @@ import Calculator from "./components/Calculator";
 import Ai from "./components/Ai";
 import Contact from "./components/Contact";
 import Testimonials from "./components/Testimonials";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Footer from "./components/Footer";
 import Layout from "./components/Layout";
+
+// Hides the footer on the landing page
+const ConditionalFooter = () => {
+  const { pathname } = useLocation();
+  if (pathname === "/") return null;
+  return <Footer />;
+};
 
 const App = () => {
   return (
     <BrowserRouter>
-      {/* Container wraps the entire app height */}
       <div className="min-h-screen flex flex-col justify-between">
         <ToastContainer position="top-right" autoClose={3000} />
 
-        {/* main wrapper takes all remaining vertical space */}
         <main className="flex-1 flex flex-col">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -32,7 +37,6 @@ const App = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/logout" element={<Logout />} />
 
-            {/* Pages that need the Navbar go inside this wrapper */}
             <Route element={<Layout />}>
               <Route path="/learn" element={<Learn />} />
               <Route path="/notes" element={<Notes />} />
@@ -54,7 +58,7 @@ const App = () => {
           </Routes>
         </main>
 
-        <Footer />
+        <ConditionalFooter />
       </div>
     </BrowserRouter>
   );
