@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import { assets } from "../assets/assets";
 import {
   login,
   signup,
@@ -149,7 +150,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F2ED] px-4">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4"
+      style={{ backgroundImage: `url(${assets.login})` }}
+    >
       <div className="w-full max-w-md mt-8 mb-8 bg-white rounded-2xl shadow-lg p-8">
         <h2 className="text-2xl font-semibold text-gray-900 mb-2">
           {isLogin ? "Welcome back" : "Create An Account"}

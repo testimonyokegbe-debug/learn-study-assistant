@@ -5,6 +5,7 @@ import human3 from "./human3.jpg";
 import human4 from "./human4.jpg";
 import star from "./star.svg";
 import video from "./video.mp4";
+import login from "./login.jfif";
 
 export const assets = {
   logo,
@@ -14,6 +15,7 @@ export const assets = {
   human4,
   star,
   video,
+  login,
 };
 
 export const TestimonialsData = [
